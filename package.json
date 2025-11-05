@@ -1,0 +1,26 @@
+{
+  "name": "ai-recruiter-pro",
+  "version": "1.0.0",
+  "description": "AI-Powered Interview Platform - Full Stack Application",
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && venv\\Scripts\\activate && python main.py",
+    "frontend": "cd frontend && npm run dev",
+    "install-all": "npm run install-backend && npm run install-frontend",
+    "install-backend": "cd backend && python -m venv venv && .\\venv\\Scripts\\activate && pip install -r requirements.txt",
+    "install-frontend": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "ai",
+    "interview",
+    "recruitment",
+    "fastapi",
+    "react",
+    "vite"
+  ],
+  "author": "",
+  "license": "ISC"
+}
