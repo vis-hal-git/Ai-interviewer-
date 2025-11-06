@@ -69,6 +69,16 @@ export const resumeAPI = {
   delete: async (resumeId) => {
     return api.delete(`/api/resumes/${resumeId}`);
   },
+
+  // Get user profile (from latest resume)
+  getProfile: async () => {
+    return api.get('/api/resumes/profile');
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    return api.put('/api/resumes/profile', profileData);
+  },
 };
 
 export default api;

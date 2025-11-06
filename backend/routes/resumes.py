@@ -119,6 +119,26 @@ async def upload_resume(
         print(f"📄 Parsing resume: {filename}")
         parsed_data = resume_parser.parse(str(file_path))
         
+        # Delete previous resumes for this user (keep only the latest)
+        resumes_collection = Database.get_collection("resumes")
+        previous_resumes = await resumes_collection.find({"user_id": user_id}).to_list(length=None)
+        
+        if previous_resumes:
+            print(f"🗑️ Found {len(previous_resumes)} previous resume(s) for user {user_id}")
+            for old_resume in previous_resumes:
+                # Delete old resume file from disk
+                # old_file_path = Path(old_resume.get("file_path", ""))
+                # if old_file_path.exists():
+                #     try:
+                #         old_file_path.unlink()
+                #         print(f"   ✅ Deleted old file: {old_file_path.name}")
+                #     except Exception as e:
+                #         print(f"   ⚠️ Could not delete old file {old_file_path.name}: {e}")
+                
+                # Delete old resume from database
+                await resumes_collection.delete_one({"_id": old_resume["_id"]})
+                print(f"   ✅ Deleted old resume from database: {old_resume['_id']}")
+        
         # Create resume document with all extracted fields
         resume_data = {
             "user_id": user_id,
@@ -146,12 +166,12 @@ async def upload_resume(
             "uploaded_at": datetime.utcnow()
         }
         
-        # Save to database
-        resumes_collection = Database.get_collection("resumes")
+        # Save new resume to database
         result = await resumes_collection.insert_one(resume_data)
         resume_id = str(result.inserted_id)
         
         print(f"✅ Resume saved with ID: {resume_id}")
+        print(f"✅ Saved with user_id: {resume_data['user_id']}")
         
         # Prepare response with all extracted data
         extracted_data = {
@@ -186,6 +206,101 @@ async def upload_resume(
     except Exception as e:
         print(f"❌ Error uploading resume: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload resume: {str(e)}")
+
+
+@router.get("/profile")
+async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get user profile data from latest resume"""
+    try:
+        print(f"🔍 Getting profile for user: {current_user}")
+        user_id = current_user.get("uid") or current_user.get("user_id") or current_user.get("sub")
+        print(f"🔍 Extracted user_id: {user_id}")
+        
+        resumes_collection = Database.get_collection("resumes")
+        
+        # Debug: Count total resumes for this user
+        count = await resumes_collection.count_documents({"user_id": user_id})
+        print(f"🔍 Found {count} resumes for user_id: {user_id}")
+        
+        # Get the most recent resume
+        resume = await resumes_collection.find_one(
+            {"user_id": user_id},
+            sort=[("uploaded_at", -1)]
+        )
+        
+        if not resume:
+            # Debug: Check all user_ids in database
+            all_resumes = await resumes_collection.find({}, {"user_id": 1}).to_list(length=10)
+            print(f"🔍 Sample user_ids in database: {[r.get('user_id') for r in all_resumes]}")
+            raise HTTPException(status_code=404, detail="No resume found. Please upload a resume first.")
+        
+        # Convert ObjectId to string
+        resume["_id"] = str(resume["_id"])
+        
+        return {
+            "success": True,
+            "profile": resume
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error getting profile: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
+
+
+@router.put("/profile")
+async def update_user_profile(
+    profile_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user profile data in the latest resume"""
+    try:
+        user_id = current_user.get("uid")
+        resumes_collection = Database.get_collection("resumes")
+        
+        # Get the most recent resume
+        resume = await resumes_collection.find_one(
+            {"user_id": user_id},
+            sort=[("uploaded_at", -1)]
+        )
+        
+        if not resume:
+            raise HTTPException(status_code=404, detail="No resume found. Please upload a resume first.")
+        
+        # Update only allowed fields
+        allowed_fields = [
+            "full_name", "email", "phone", "skills", "experience", 
+            "education", "certifications", "projects", "achievements",
+            "languages", "publications", "volunteer", "summary",
+            "linkedin", "github", "portfolio"
+        ]
+        
+        update_data = {k: v for k, v in profile_data.items() if k in allowed_fields}
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+        
+        # Update the resume
+        result = await resumes_collection.update_one(
+            {"_id": resume["_id"]},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            return {"success": True, "message": "No changes made"}
+        
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "updated_fields": list(update_data.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error updating profile: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
 
 
 @router.get("/{resume_id}")

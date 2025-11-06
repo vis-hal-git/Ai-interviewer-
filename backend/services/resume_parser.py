@@ -69,17 +69,17 @@ class ResumeParser:
         emails = re.findall(email_pattern, text)
         email = emails[0] if emails else None
         
-        # Phone extraction
+        # Phone extraction with country code
         phone_patterns = [
-            r'\+?1?\s*\(?(\d{3})\)?[\s.-]?(\d{3})[\s.-]?(\d{4})',
-            r'\+?\d{1,3}[\s.-]?\d{3,4}[\s.-]?\d{4}',
-            r'\(\d{3}\)\s*\d{3}[-.]?\d{4}'
+            r'\+\d{1,3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}[-.\s]?\d{3,4}',  # International format with +
+            r'\+\d{1,3}[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}',  # +1 (555) 555-5555
+            r'\d{3}[-.\s]?\d{3}[-.\s]?\d{4}'  # Simple 10-digit
         ]
         phone = None
         for pattern in phone_patterns:
-            phones = re.findall(pattern, text)
-            if phones:
-                phone = str(phones[0]) if isinstance(phones[0], str) else '-'.join(phones[0])
+            matches = re.findall(pattern, text)
+            if matches:
+                phone = matches[0].strip()
                 break
         
         # LinkedIn extraction
@@ -92,11 +92,27 @@ class ResumeParser:
         github_match = re.search(github_pattern, text, re.IGNORECASE)
         github = github_match.group(0) if github_match else None
         
+        # Portfolio extraction - try multiple patterns
+        portfolio_patterns = [
+            r'(?:https?://)?(?:www\.)?[\w-]+\.vercel\.app/?[\w/-]*',
+            r'(?:https?://)?(?:www\.)?[\w-]+\.netlify\.app/?[\w/-]*',
+            r'(?:https?://)?(?:www\.)?[\w-]+\.herokuapp\.com/?[\w/-]*',
+            r'(?:https?://)?(?:www\.)?[\w-]+\.github\.io/?[\w/-]*',
+            r'(?:https?://)?portfolio\.[\w-]+\.[\w.]+/?[\w/-]*'
+        ]
+        portfolio = None
+        for pattern in portfolio_patterns:
+            portfolio_match = re.search(pattern, text, re.IGNORECASE)
+            if portfolio_match:
+                portfolio = portfolio_match.group(0)
+                break
+        
         return {
             'email': email,
             'phone': phone,
             'linkedin': linkedin,
-            'github': github
+            'github': github,
+            'portfolio': portfolio
         }
     
     def extract_hyperlinks_from_pdf(self, file_path: str) -> Dict[str, str]:
@@ -105,6 +121,8 @@ class ResumeParser:
         Returns dict with link text mapped to URLs
         """
         links = {}
+        all_links = []  # Store all project/portfolio links
+        
         try:
             import pdfplumber
             with pdfplumber.open(file_path) as pdf:
@@ -114,24 +132,36 @@ class ResumeParser:
                         for annot in page.annots:
                             if annot.get('uri'):  # External URL
                                 url = annot['uri']
-                                # Try to get the text under this annotation
-                                # Use the URL itself as fallback
-                                links[url] = url
+                                all_links.append(url)
                                 
                                 # Categorize based on URL
                                 url_lower = url.lower()
-                                if 'github' in url_lower:
+                                if 'github.com' in url_lower and '/github.com/' in url_lower:
                                     links['github'] = url
-                                elif 'linkedin' in url_lower:
+                                elif 'linkedin.com/in' in url_lower:
                                     links['linkedin'] = url
-                                elif 'portfolio' in url_lower or 'vercel' in url_lower or 'netlify' in url_lower:
-                                    links['portfolio'] = url
+                                elif any(domain in url_lower for domain in ['vercel.app', 'netlify.app', 'herokuapp.com', 'github.io']):
+                                    # Check if it's not the GitHub profile link
+                                    if 'github.io' in url_lower or 'vercel' in url_lower or 'netlify' in url_lower:
+                                        if 'portfolio' not in links:
+                                            links['portfolio'] = url
+                                        else:
+                                            # Store as additional project link
+                                            if 'project_links' not in links:
+                                                links['project_links'] = []
+                                            links['project_links'].append(url)
+            
+            # Store all links for reference
+            if all_links:
+                links['all_links'] = all_links
             
             if links:
-                print(f"🔗 Extracted {len(links)} hyperlinks from PDF")
+                print(f"🔗 Extracted {len(all_links)} total hyperlinks from PDF")
                 for key, url in links.items():
                     if key in ['github', 'linkedin', 'portfolio']:
                         print(f"   {key}: {url}")
+                if 'project_links' in links:
+                    print(f"   📦 Project links: {len(links['project_links'])} found")
         except Exception as e:
             print(f"⚠️ Could not extract hyperlinks: {e}")
         
@@ -162,11 +192,17 @@ class ResumeParser:
             if hyperlinks:
                 text += "\n--- Extracted Links ---\n"
                 if 'github' in hyperlinks:
-                    text += f"GitHub: {hyperlinks['github']}\n"
+                    text += f"GitHub Profile: {hyperlinks['github']}\n"
                 if 'linkedin' in hyperlinks:
-                    text += f"LinkedIn: {hyperlinks['linkedin']}\n"
+                    text += f"LinkedIn Profile: {hyperlinks['linkedin']}\n"
                 if 'portfolio' in hyperlinks:
-                    text += f"Portfolio: {hyperlinks['portfolio']}\n"
+                    text += f"Portfolio Website: {hyperlinks['portfolio']}\n"
+                
+                # Add all links so LLM can match them to projects
+                if 'all_links' in hyperlinks:
+                    text += "\nAll Hyperlinks found in resume:\n"
+                    for i, link in enumerate(hyperlinks['all_links'], 1):
+                        text += f"{i}. {link}\n"
             
             print(f"✅ Extracted {len(text)} characters from PDF using pdfplumber")
         except ImportError:
@@ -238,7 +274,7 @@ Extract and return a JSON object with this structure:
         }}
     ],
     "achievements": ["achievement1", "achievement2", ...],
-    "languages": ["language1", "language2", ...],
+    "languages": ["spoken language1", "spoken language2", ...],
     "publications": [
         {{
             "title": "publication title",
@@ -262,16 +298,20 @@ CRITICAL INSTRUCTIONS:
 3. Extract ALL work experiences with complete details
 4. Extract ALL education entries with full details
 5. Extract ALL projects with descriptions and technologies used
-6. Extract any certifications, courses, or professional development
-7. Extract achievements, awards, honors, or recognitions
-8. Extract programming AND spoken languages if mentioned
-9. Extract publications, research papers if present
-10. Extract volunteer work or extracurricular activities
-11. Look for GitHub, LinkedIn, Portfolio URLs in the "Extracted Links" section
-12. If a section is not found, use empty array [] or null
-13. Return ONLY the JSON object, no markdown formatting, no explanations
-14. Ensure the JSON is valid and properly formatted
-15. Be thorough - extract EVERY section present in the resume"""
+6. IMPORTANT FOR PROJECTS: Match each project to its URL from the "All Hyperlinks found in resume" section at the bottom. Look for vercel.app, netlify.app, github.io domains and assign them to the correct project based on context
+7. Extract any certifications, courses, or professional development
+8. Extract achievements, awards, honors, or recognitions
+9. IMPORTANT: For "languages" field, extract ONLY SPOKEN/HUMAN LANGUAGES (like English, Hindi, Spanish). DO NOT include programming languages (Python, JavaScript, etc.) - those go in "skills"
+10. If no spoken languages section exists in resume, leave languages as empty array []
+11. Extract publications, research papers if present
+12. Extract volunteer work or extracurricular activities
+13. Look for GitHub Profile, LinkedIn Profile, Portfolio Website in the "Extracted Links" section
+14. For each project, try to find its deployment link from the hyperlinks list
+15. Programming languages like Python, Java, C++, JavaScript should go in "skills" NOT "languages"
+16. If a section is not found, use empty array [] or null
+17. Return ONLY the JSON object, no markdown formatting, no explanations
+18. Ensure the JSON is valid and properly formatted
+19. Be thorough - extract EVERY section present in the resume"""
 
         try:
             print("🤖 Calling Groq API...")
@@ -432,6 +472,7 @@ CRITICAL INSTRUCTIONS:
         print(f"   📱 Phone: {basic_info.get('phone')}")
         print(f"   🔗 LinkedIn: {basic_info.get('linkedin')}")
         print(f"   🔗 GitHub: {basic_info.get('github')}")
+        print(f"   🌐 Portfolio: {basic_info.get('portfolio')}")
         
         # Step 3: Extract structured data using LLM (intelligent parsing)
         print("\n🤖 Extracting structured data with Groq LLM...")
@@ -454,7 +495,7 @@ CRITICAL INSTRUCTIONS:
             "summary": llm_data.get("summary"),
             "linkedin": basic_info["linkedin"],
             "github": basic_info["github"],
-            "portfolio": None,  # Will be extracted from hyperlinks
+            "portfolio": basic_info.get("portfolio"),  # Use portfolio from regex extraction
             "raw_text": text[:5000]  # Limit to first 5000 chars
         }
         
