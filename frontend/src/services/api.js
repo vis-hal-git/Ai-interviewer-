@@ -40,4 +40,45 @@ api.interceptors.response.use(
   }
 );
 
+// Resume API functions
+export const resumeAPI = {
+  // Upload resume
+  upload: async (file, jobRole) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('job_role', jobRole);
+    
+    return api.post('/api/resumes/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Get resume by ID
+  getById: async (resumeId) => {
+    return api.get(`/api/resumes/${resumeId}`);
+  },
+
+  // Get all user resumes
+  getUserResumes: async () => {
+    return api.get('/api/resumes/user/all');
+  },
+
+  // Delete resume
+  delete: async (resumeId) => {
+    return api.delete(`/api/resumes/${resumeId}`);
+  },
+
+  // Get user profile (from latest resume)
+  getProfile: async () => {
+    return api.get('/api/resumes/profile');
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    return api.put('/api/resumes/profile', profileData);
+  },
+};
+
 export default api;

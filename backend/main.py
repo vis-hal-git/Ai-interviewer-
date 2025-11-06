@@ -4,9 +4,10 @@ Main FastAPI application entry point
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from routes import auth_router, candidates_router, interviews_router, recruiters_router
+from routes import auth_router, candidates_router, interviews_router, recruiters_router, resumes_router
 from utils.database import Database
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 
 @asynccontextmanager
@@ -15,6 +16,13 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting AI Recruiter Pro API...")
     await Database.connect_db()
+    
+    # Ensure upload directories exist
+    Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+    Path(settings.UPLOAD_DIR, "resumes").mkdir(parents=True, exist_ok=True)
+    Path(settings.REPORTS_DIR).mkdir(parents=True, exist_ok=True)
+    print("✅ Upload directories created")
+    
     yield
     # Shutdown
     print("🔄 Shutting down AI Recruiter Pro API...")
@@ -43,6 +51,7 @@ app.include_router(auth_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)
 app.include_router(recruiters_router)
+app.include_router(resumes_router)
 
 
 @app.get("/")

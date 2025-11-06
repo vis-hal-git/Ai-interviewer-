@@ -28,6 +28,7 @@ textblob
 # Document Processing
 PyPDF2
 pdfplumber
+python-docx
 
 # Audio Processing
 SpeechRecognition

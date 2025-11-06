@@ -18,6 +18,7 @@ import InterviewRoom from './pages/InterviewRoom';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import InterviewDetail from './pages/InterviewDetail';
 import Analytics from './pages/Analytics';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ResumeUpload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

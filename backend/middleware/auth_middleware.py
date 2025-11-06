@@ -80,21 +80,29 @@ async def verify_token(credentials: HTTPAuthorizationCredentials) -> dict:
     pass
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = None) -> dict:
+async def get_current_user(
+    token_data: dict = Depends(verify_firebase_token)
+) -> dict:
     """
     Get current authenticated user from token
     
     Args:
-        credentials: Bearer token credentials
+        token_data: Decoded Firebase token (automatically injected)
         
     Returns:
-        User information
+        User information dictionary with uid, email, etc.
         
     Raises:
         HTTPException: If not authenticated
     """
-    # TODO: Implement get current user
-    pass
+    if not token_data:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated"
+        )
+    
+    # Return the decoded token which contains user info
+    return token_data
 
 
 async def require_role(required_role: str):
