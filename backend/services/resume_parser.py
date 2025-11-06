@@ -99,20 +99,75 @@ class ResumeParser:
             'github': github
         }
     
+    def extract_hyperlinks_from_pdf(self, file_path: str) -> Dict[str, str]:
+        """
+        Extract hyperlinks from PDF annotations
+        Returns dict with link text mapped to URLs
+        """
+        links = {}
+        try:
+            import pdfplumber
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    # Extract annotations/links
+                    if hasattr(page, 'annots') and page.annots:
+                        for annot in page.annots:
+                            if annot.get('uri'):  # External URL
+                                url = annot['uri']
+                                # Try to get the text under this annotation
+                                # Use the URL itself as fallback
+                                links[url] = url
+                                
+                                # Categorize based on URL
+                                url_lower = url.lower()
+                                if 'github' in url_lower:
+                                    links['github'] = url
+                                elif 'linkedin' in url_lower:
+                                    links['linkedin'] = url
+                                elif 'portfolio' in url_lower or 'vercel' in url_lower or 'netlify' in url_lower:
+                                    links['portfolio'] = url
+            
+            if links:
+                print(f"🔗 Extracted {len(links)} hyperlinks from PDF")
+                for key, url in links.items():
+                    if key in ['github', 'linkedin', 'portfolio']:
+                        print(f"   {key}: {url}")
+        except Exception as e:
+            print(f"⚠️ Could not extract hyperlinks: {e}")
+        
+        return links
+    
     def extract_text_from_pdf_enhanced(self, file_path: str) -> str:
         """
         Enhanced PDF text extraction with better handling
         Extracts text page by page and preserves structure
+        Also extracts hyperlinks and appends them to text
         """
         text = ""
         try:
             import pdfplumber
+            
+            # Extract hyperlinks first
+            hyperlinks = self.extract_hyperlinks_from_pdf(file_path)
+            
+            # Extract text
             with pdfplumber.open(file_path) as pdf:
                 for page_num, page in enumerate(pdf.pages, 1):
                     page_text = page.extract_text()
                     if page_text:
                         text += f"\n--- Page {page_num} ---\n"
                         text += page_text + "\n"
+            
+            # Append extracted links to text for LLM to process
+            if hyperlinks:
+                text += "\n--- Extracted Links ---\n"
+                if 'github' in hyperlinks:
+                    text += f"GitHub: {hyperlinks['github']}\n"
+                if 'linkedin' in hyperlinks:
+                    text += f"LinkedIn: {hyperlinks['linkedin']}\n"
+                if 'portfolio' in hyperlinks:
+                    text += f"Portfolio: {hyperlinks['portfolio']}\n"
+            
             print(f"✅ Extracted {len(text)} characters from PDF using pdfplumber")
         except ImportError:
             print("⚠️ pdfplumber not available, falling back to PyPDF2")
@@ -152,7 +207,7 @@ class ResumeParser:
 RESUME TEXT:
 {resume_text}
 
-Extract and return a JSON object with this EXACT structure:
+Extract and return a JSON object with this structure:
 
 {{
     "name": "candidate's full name (extract from top of resume)",
@@ -174,6 +229,30 @@ Extract and return a JSON object with this EXACT structure:
         }}
     ],
     "certifications": ["cert1", "cert2", ...],
+    "projects": [
+        {{
+            "name": "project name",
+            "description": "what the project does",
+            "technologies": ["tech1", "tech2"],
+            "link": "project URL if available"
+        }}
+    ],
+    "achievements": ["achievement1", "achievement2", ...],
+    "languages": ["language1", "language2", ...],
+    "publications": [
+        {{
+            "title": "publication title",
+            "venue": "where published",
+            "year": "publication year"
+        }}
+    ],
+    "volunteer": [
+        {{
+            "role": "volunteer role",
+            "organization": "org name",
+            "duration": "time period"
+        }}
+    ],
     "summary": "write a professional 2-3 sentence summary highlighting their key strengths and experience"
 }}
 
@@ -181,11 +260,18 @@ CRITICAL INSTRUCTIONS:
 1. Extract the candidate's ACTUAL NAME from the resume (usually at the top)
 2. Extract ALL technical skills: programming languages, frameworks, libraries, tools, databases, cloud platforms, methodologies
 3. Extract ALL work experiences with complete details
-4. Extract ALL education entries
-5. Extract any certifications or courses mentioned
-6. If information is not found, use empty array [] or null
-7. Return ONLY the JSON object, no markdown formatting, no explanations
-8. Ensure the JSON is valid and properly formatted"""
+4. Extract ALL education entries with full details
+5. Extract ALL projects with descriptions and technologies used
+6. Extract any certifications, courses, or professional development
+7. Extract achievements, awards, honors, or recognitions
+8. Extract programming AND spoken languages if mentioned
+9. Extract publications, research papers if present
+10. Extract volunteer work or extracurricular activities
+11. Look for GitHub, LinkedIn, Portfolio URLs in the "Extracted Links" section
+12. If a section is not found, use empty array [] or null
+13. Return ONLY the JSON object, no markdown formatting, no explanations
+14. Ensure the JSON is valid and properly formatted
+15. Be thorough - extract EVERY section present in the resume"""
 
         try:
             print("🤖 Calling Groq API...")
@@ -251,9 +337,15 @@ CRITICAL INSTRUCTIONS:
             
             # Ensure all required keys exist
             required_keys = ['name', 'skills', 'experience', 'education', 'certifications', 'summary']
+            optional_keys = ['projects', 'achievements', 'languages', 'publications', 'volunteer']
+            
             for key in required_keys:
                 if key not in extracted_data:
                     extracted_data[key] = [] if key in ['skills', 'experience', 'education', 'certifications'] else None
+            
+            for key in optional_keys:
+                if key not in extracted_data:
+                    extracted_data[key] = []
             
             # Log success
             print(f"✅ LLM extraction successful!")
@@ -262,6 +354,8 @@ CRITICAL INSTRUCTIONS:
             print(f"   💼 Experience: {len(extracted_data.get('experience', []))} positions")
             print(f"   🎓 Education: {len(extracted_data.get('education', []))} entries")
             print(f"   📜 Certifications: {len(extracted_data.get('certifications', []))} found")
+            print(f"   🚀 Projects: {len(extracted_data.get('projects', []))} found")
+            print(f"   🏆 Achievements: {len(extracted_data.get('achievements', []))} found")
             
             return extracted_data
             
@@ -278,13 +372,18 @@ CRITICAL INSTRUCTIONS:
             return self._get_empty_structure()
     
     def _get_empty_structure(self) -> Dict:
-        """Return empty data structure"""
+        """Return empty data structure with all possible fields"""
         return {
             "name": None,
             "skills": [],
             "experience": [],
             "education": [],
             "certifications": [],
+            "projects": [],
+            "achievements": [],
+            "languages": [],
+            "publications": [],
+            "volunteer": [],
             "summary": None
         }
     
@@ -347,15 +446,21 @@ CRITICAL INSTRUCTIONS:
             "experience": llm_data.get("experience", []),
             "education": llm_data.get("education", []),
             "certifications": llm_data.get("certifications", []),
+            "projects": llm_data.get("projects", []),
+            "achievements": llm_data.get("achievements", []),
+            "languages": llm_data.get("languages", []),
+            "publications": llm_data.get("publications", []),
+            "volunteer": llm_data.get("volunteer", []),
             "summary": llm_data.get("summary"),
             "linkedin": basic_info["linkedin"],
             "github": basic_info["github"],
-            "portfolio": None,
+            "portfolio": None,  # Will be extracted from hyperlinks
             "raw_text": text[:5000]  # Limit to first 5000 chars
         }
         
         print(f"✅ Parsing complete! Found: {len(result['skills'])} skills, "
-              f"{len(result['experience'])} experiences, {len(result['education'])} education entries")
+              f"{len(result['experience'])} experiences, {len(result['education'])} education entries, "
+              f"{len(result['projects'])} projects, {len(result['achievements'])} achievements")
         
         return result
 

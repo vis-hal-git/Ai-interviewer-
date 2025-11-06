@@ -24,7 +24,7 @@ class Experience(BaseModel):
 
 
 class Resume(BaseModel):
-    """Resume document model"""
+    """Resume document model with flexible schema"""
     user_id: str  # Firebase user ID
     full_name: str
     email: Optional[EmailStr] = None
@@ -38,6 +38,15 @@ class Resume(BaseModel):
     linkedin: Optional[str] = None
     github: Optional[str] = None
     portfolio: Optional[str] = None
+    
+    # Flexible fields for any additional sections
+    projects: List[Dict] = []  # Projects section
+    achievements: List[str] = []  # Achievements/Awards
+    languages: List[str] = []  # Programming/Spoken languages
+    publications: List[Dict] = []  # Research papers/publications
+    volunteer: List[Dict] = []  # Volunteer experience
+    additional_sections: Dict = {}  # Any other custom sections
+    
     raw_text: str  # Full extracted text
     filename: str
     file_path: str

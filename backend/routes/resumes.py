@@ -119,7 +119,7 @@ async def upload_resume(
         print(f"📄 Parsing resume: {filename}")
         parsed_data = resume_parser.parse(str(file_path))
         
-        # Create resume document
+        # Create resume document with all extracted fields
         resume_data = {
             "user_id": user_id,
             "full_name": parsed_data.get("name", "Unknown"),
@@ -129,6 +129,11 @@ async def upload_resume(
             "experience": parsed_data.get("experience", []),
             "education": parsed_data.get("education", []),
             "certifications": parsed_data.get("certifications", []),
+            "projects": parsed_data.get("projects", []),
+            "achievements": parsed_data.get("achievements", []),
+            "languages": parsed_data.get("languages", []),
+            "publications": parsed_data.get("publications", []),
+            "volunteer": parsed_data.get("volunteer", []),
             "summary": parsed_data.get("summary"),
             "job_role": job_role,
             "linkedin": parsed_data.get("linkedin"),
@@ -148,17 +153,24 @@ async def upload_resume(
         
         print(f"✅ Resume saved with ID: {resume_id}")
         
-        # Prepare response
+        # Prepare response with all extracted data
         extracted_data = {
             "name": resume_data["full_name"],
             "email": resume_data["email"],
             "phone": resume_data["phone"],
             "skills": resume_data["skills"],
-            "experience_count": len(resume_data["experience"]),
-            "education_count": len(resume_data["education"]),
+            "experience": resume_data["experience"],  # Full experience array
+            "education": resume_data["education"],    # Full education array
+            "certifications": resume_data["certifications"],
+            "projects": resume_data["projects"],
+            "achievements": resume_data["achievements"],
+            "languages": resume_data["languages"],
+            "publications": resume_data["publications"],
+            "volunteer": resume_data["volunteer"],
             "summary": resume_data["summary"],
             "linkedin": resume_data["linkedin"],
-            "github": resume_data["github"]
+            "github": resume_data["github"],
+            "portfolio": resume_data["portfolio"]
         }
         
         return ResumeUploadResponse(

@@ -423,38 +423,38 @@ const ResumeUpload = () => {
                 </div>
               </div>
 
-              {/* Professional Info */}
+              {/* Professional Links */}
               <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                 <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-                  <span>💼</span>
-                  <span>Professional Summary</span>
+                  <span>�</span>
+                  <span>Professional Links</span>
                 </h3>
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-gray-400 text-sm">Experience</p>
-                    <p className="text-white font-semibold">
-                      {extractedData?.experience_count || 0} position(s) found
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Education</p>
-                    <p className="text-white font-semibold">
-                      {extractedData?.education_count || 0} degree(s) found
-                    </p>
-                  </div>
-                  {extractedData?.linkedin && (
+                  {extractedData?.linkedin ? (
                     <div>
                       <p className="text-gray-400 text-sm">LinkedIn</p>
-                      <a href={extractedData.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline">
-                        View Profile
+                      <a href={extractedData.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline break-all">
+                        {extractedData.linkedin}
                       </a>
                     </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No LinkedIn profile found</p>
                   )}
-                  {extractedData?.github && (
+                  {extractedData?.github ? (
                     <div>
                       <p className="text-gray-400 text-sm">GitHub</p>
-                      <a href={extractedData.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline">
-                        View Profile
+                      <a href={extractedData.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline break-all">
+                        {extractedData.github}
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No GitHub profile found</p>
+                  )}
+                  {extractedData?.portfolio && (
+                    <div>
+                      <p className="text-gray-400 text-sm">Portfolio</p>
+                      <a href={extractedData.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm underline break-all">
+                        {extractedData.portfolio}
                       </a>
                     </div>
                   )}
@@ -466,7 +466,7 @@ const ResumeUpload = () => {
                 <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
                   <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
                     <span>⚡</span>
-                    <span>Detected Skills ({extractedData.skills.length})</span>
+                    <span>Skills ({extractedData.skills.length})</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {extractedData.skills.map((skill, index) => (
@@ -481,12 +481,191 @@ const ResumeUpload = () => {
                 </div>
               )}
 
+              {/* Experience */}
+              {extractedData?.experience && extractedData.experience.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>💼</span>
+                    <span>Work Experience ({extractedData.experience.length})</span>
+                  </h3>
+                  <div className="space-y-4">
+                    {extractedData.experience.map((exp, index) => (
+                      <div key={index} className="border-l-2 border-purple-500 pl-4">
+                        <h4 className="text-white font-semibold">{exp.title}</h4>
+                        <p className="text-purple-400 text-sm">{exp.company}</p>
+                        {exp.duration && (
+                          <p className="text-gray-400 text-xs mt-1">{exp.duration}</p>
+                        )}
+                        {exp.description && (
+                          <p className="text-gray-300 text-sm mt-2">{exp.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Education */}
+              {extractedData?.education && extractedData.education.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>🎓</span>
+                    <span>Education ({extractedData.education.length})</span>
+                  </h3>
+                  <div className="space-y-4">
+                    {extractedData.education.map((edu, index) => (
+                      <div key={index} className="border-l-2 border-green-500 pl-4">
+                        <h4 className="text-white font-semibold">{edu.degree}</h4>
+                        <p className="text-green-400 text-sm">{edu.institution}</p>
+                        <div className="flex items-center gap-4 mt-1">
+                          {edu.year && (
+                            <p className="text-gray-400 text-xs">{edu.year}</p>
+                          )}
+                          {edu.grade && (
+                            <p className="text-gray-400 text-xs">Grade: {edu.grade}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects */}
+              {extractedData?.projects && extractedData.projects.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>🚀</span>
+                    <span>Projects ({extractedData.projects.length})</span>
+                  </h3>
+                  <div className="space-y-4">
+                    {extractedData.projects.map((project, index) => (
+                      <div key={index} className="border-l-2 border-yellow-500 pl-4">
+                        <h4 className="text-white font-semibold">{project.name}</h4>
+                        {project.description && (
+                          <p className="text-gray-300 text-sm mt-1">{project.description}</p>
+                        )}
+                        {project.technologies && project.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {project.technologies.map((tech, i) => (
+                              <span key={i} className="px-2 py-1 bg-yellow-500/20 text-yellow-300 text-xs rounded">
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {project.link && (
+                          <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-xs mt-2 inline-block underline">
+                            View Project →
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {extractedData?.certifications && extractedData.certifications.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>📜</span>
+                    <span>Certifications ({extractedData.certifications.length})</span>
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {extractedData.certifications.map((cert, index) => (
+                      <div key={index} className="flex items-center space-x-2 text-gray-300">
+                        <span className="text-green-400">✓</span>
+                        <span className="text-sm">{cert}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Achievements */}
+              {extractedData?.achievements && extractedData.achievements.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>🏆</span>
+                    <span>Achievements ({extractedData.achievements.length})</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {extractedData.achievements.map((achievement, index) => (
+                      <div key={index} className="flex items-start space-x-2 text-gray-300">
+                        <span className="text-yellow-400 mt-1">★</span>
+                        <span className="text-sm">{achievement}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Languages */}
+              {extractedData?.languages && extractedData.languages.length > 0 && (
+                <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>🌐</span>
+                    <span>Languages</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedData.languages.map((lang, index) => (
+                      <span key={index} className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full">
+                        {lang}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Volunteer Work */}
+              {extractedData?.volunteer && extractedData.volunteer.length > 0 && (
+                <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>🤝</span>
+                    <span>Volunteer Experience</span>
+                  </h3>
+                  <div className="space-y-3">
+                    {extractedData.volunteer.map((vol, index) => (
+                      <div key={index}>
+                        <h4 className="text-white font-semibold text-sm">{vol.role}</h4>
+                        <p className="text-gray-400 text-xs">{vol.organization}</p>
+                        {vol.duration && (
+                          <p className="text-gray-500 text-xs">{vol.duration}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Publications */}
+              {extractedData?.publications && extractedData.publications.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                    <span>📚</span>
+                    <span>Publications ({extractedData.publications.length})</span>
+                  </h3>
+                  <div className="space-y-3">
+                    {extractedData.publications.map((pub, index) => (
+                      <div key={index} className="border-l-2 border-pink-500 pl-4">
+                        <h4 className="text-white font-semibold text-sm">{pub.title}</h4>
+                        <p className="text-pink-400 text-xs">{pub.venue}</p>
+                        {pub.year && (
+                          <p className="text-gray-400 text-xs">{pub.year}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Summary */}
               {extractedData?.summary && (
                 <div className="md:col-span-2 bg-white/5 rounded-2xl p-6 border border-white/10">
                   <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
                     <span>📋</span>
-                    <span>Summary</span>
+                    <span>Professional Summary</span>
                   </h3>
                   <p className="text-gray-300 leading-relaxed">{extractedData.summary}</p>
                 </div>
