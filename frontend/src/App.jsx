@@ -14,11 +14,16 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import ResumeUpload from './pages/ResumeUpload';
+import StartInterview from './pages/StartInterview';
 import InterviewRoom from './pages/InterviewRoom';
+import InterviewPreparation from './pages/InterviewPreparation';
+import InterviewComplete from './pages/InterviewComplete';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import InterviewDetail from './pages/InterviewDetail';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import HelpSupport from './pages/HelpSupport';
 
 function App() {
   return (
@@ -50,6 +55,14 @@ function App() {
               }
             />
             <Route
+              path="/start-interview"
+              element={
+                <ProtectedRoute>
+                  <StartInterview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <ProtectedRoute>
@@ -58,10 +71,42 @@ function App() {
               }
             />
             <Route
-              path="/interview/:sessionId"
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <HelpSupport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview/prepare/:sessionId"
+              element={
+                <ProtectedRoute>
+                  <InterviewPreparation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview/room/:sessionId"
               element={
                 <ProtectedRoute>
                   <InterviewRoom />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview/complete/:sessionId"
+              element={
+                <ProtectedRoute>
+                  <InterviewComplete />
                 </ProtectedRoute>
               }
             />

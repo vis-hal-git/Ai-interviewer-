@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, Mail, Phone, Link as LinkIcon, Save, Edit2, X,
   Briefcase, GraduationCap, Award, Code, Rocket, Star,
-  Globe, BookOpen, Heart, Check, Loader
+  Globe, BookOpen, Heart, Check, Loader, AlertCircle
 } from 'lucide-react';
 import { resumeAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -18,6 +19,7 @@ const Profile = () => {
   const [editMode, setEditMode] = useState({});
   const [editedData, setEditedData] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   const tabs = [
     { id: 'basic', label: 'Basic Info', icon: User },
@@ -33,6 +35,14 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfile();
+    
+    // Check for redirect message from StartInterview
+    if (location.state?.message) {
+      setInfoMessage(location.state.message);
+      setTimeout(() => setInfoMessage(''), 5000);
+      // Clear the location state
+      navigate(location.pathname, { replace: true });
+    }
   }, []);
 
   const fetchProfile = async () => {
@@ -127,7 +137,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center pt-20">
         <div className="text-center">
           <Loader className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-4" />
           <p className="text-white text-lg">Loading your profile...</p>
@@ -138,8 +148,14 @@ const Profile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center pt-20">
+        {/* Animated background elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+          <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        </div>
+        <div className="text-center relative z-10">
           <p className="text-white text-lg mb-4">No profile found. Please upload your resume first.</p>
           <button
             onClick={() => navigate('/upload-resume')}
@@ -1010,9 +1026,18 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pt-20 pb-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-white mb-2">My Profile</h1>
-          <p className="text-gray-300">Manage your professional information</p>
+        <div className="mb-8 animate-fade-in flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">My Profile</h1>
+            <p className="text-gray-300">Manage your professional information</p>
+          </div>
+          <button
+            onClick={() => navigate('/upload-resume')}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:scale-105 transition-all shadow-lg shadow-purple-500/50"
+          >
+            <Briefcase className="h-5 w-5" />
+            Upload Resume
+          </button>
         </div>
 
         {/* Success Message */}
@@ -1020,6 +1045,14 @@ const Profile = () => {
           <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center gap-2 text-green-300 animate-fade-in">
             <Check className="h-5 w-5" />
             {successMessage}
+          </div>
+        )}
+
+        {/* Info Message */}
+        {infoMessage && (
+          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg flex items-center gap-2 text-blue-300 animate-fade-in">
+            <AlertCircle className="h-5 w-5" />
+            {infoMessage}
           </div>
         )}
 

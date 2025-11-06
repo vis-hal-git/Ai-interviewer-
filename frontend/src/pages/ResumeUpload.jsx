@@ -2,7 +2,7 @@
  * Resume Upload Page - Beautiful drag-and-drop UI
  */
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
 const ResumeUpload = () => {
@@ -15,8 +15,22 @@ const ResumeUpload = () => {
   const [extractedData, setExtractedData] = useState(null);
   const [resumeId, setResumeId] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for message from navigation state
+  useEffect(() => {
+    if (location.state?.message) {
+      setInfoMessage(location.state.message);
+      // Clear the message after 5 seconds
+      const timer = setTimeout(() => {
+        setInfoMessage('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const jobRoles = [
     { value: 'Software Engineer', icon: '💻', color: 'from-blue-500 to-cyan-500' },
@@ -142,11 +156,30 @@ const ResumeUpload = () => {
     }
   };
 
-  const handleStartInterview = () => {
+  const handleStartInterview = async () => {
     if (resumeId) {
-      // Navigate to interview room or preparation page
-      navigate(`/dashboard?resume_id=${resumeId}&job_role=${encodeURIComponent(jobRole)}`);
+      try {
+        // Start interview and generate questions
+        const response = await api.post('/api/interviews/start', {
+          candidate_id: resumeId,
+          job_role: jobRole
+        });
+
+        if (response.data.success) {
+          const sessionId = response.data.data.session_id;
+          // Navigate to interview preparation page (face detection setup)
+          navigate(`/interview/prepare/${sessionId}`);
+        }
+      } catch (error) {
+        console.error('Error starting interview:', error);
+        setError('Failed to start interview. Please try again.');
+      }
     }
+  };
+
+  const handleEditInfo = () => {
+    // Navigate to profile page for editing
+    navigate('/profile');
   };
 
   const handleReset = () => {
@@ -173,7 +206,7 @@ const ResumeUpload = () => {
   const selectedRoleDetails = jobRoles.find(role => role.value === jobRole);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4 pt-24">
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -268,6 +301,16 @@ const ResumeUpload = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Info Message */}
+                  {infoMessage && (
+                    <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-xl text-blue-300 text-sm flex items-start space-x-2">
+                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <span>{infoMessage}</span>
+                    </div>
+                  )}
 
                   {/* Error Message */}
                   {error && (
@@ -680,6 +723,13 @@ const ResumeUpload = () => {
               >
                 <span>🎯</span>
                 <span>Start Interview</span>
+              </button>
+              <button
+                onClick={handleEditInfo}
+                className="flex-1 py-4 px-8 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-lg hover:scale-105 transition-transform shadow-xl flex items-center justify-center space-x-2"
+              >
+                <span>✏️</span>
+                <span>Edit Info</span>
               </button>
               <button
                 onClick={handleReset}
