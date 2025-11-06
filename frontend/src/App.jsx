@@ -22,6 +22,8 @@ import RecruiterDashboard from './pages/RecruiterDashboard';
 import InterviewDetail from './pages/InterviewDetail';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import HelpSupport from './pages/HelpSupport';
 
 function App() {
   return (
@@ -65,6 +67,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <HelpSupport />
                 </ProtectedRoute>
               }
             />
